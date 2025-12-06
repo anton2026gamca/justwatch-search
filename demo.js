@@ -20,6 +20,8 @@ let workerReady = false;
 let commandHistory = [];
 let historyIndex = -1;
 
+let runningCommand = false;
+
 async function loadPythonScript() {
   try {
     const response = await fetch('just_watch_search.py');
@@ -174,9 +176,9 @@ async function runTerminalCommand(command) {
     appendOutput('$ ' + command, 'info');
     const input = document.getElementById('commandInput');
     input.value = '';
-    input.disabled = true;
+    runningCommand = true;
     await cmd.action(args);
-    input.disabled = false;
+    runningCommand = false;
   } else {
     appendOutput('Unknown command: ' + command, 'error');
     appendOutput('Type "help" to see the list of available commands.', 'info');
@@ -192,6 +194,15 @@ async function runJustWatchSearch(args) {
   updateStatus('loading', 'Running command...');
   
   worker.postMessage({ type: 'run', args: args });
+  await new Promise((resolve) => {
+    const checkCompletion = (e) => {
+      if (e.data.type === 'complete') {
+        worker.removeEventListener('message', checkCompletion);
+        resolve();
+      }
+    };
+    worker.addEventListener('message', checkCompletion);
+  });
 }
 
 document.getElementById('commandInput').addEventListener('keydown', async function(e) {
@@ -199,7 +210,11 @@ document.getElementById('commandInput').addEventListener('keydown', async functi
     e.preventDefault();
     const cmd = this.value.trim();
     if (cmd) {
-      await runTerminalCommand(cmd);
+      if (runningCommand) {
+        appendOutput('A command is already running. Please wait...', 'error');
+      } else {
+        await runTerminalCommand(cmd);
+      }
       this.value = '';
     }
   } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
