@@ -21,6 +21,8 @@ let commandHistory = [];
 let historyIndex = -1;
 
 let runningCommand = false;
+let waitingForStdin = false;
+let stdinHandler = null;
 
 async function loadPythonScript() {
   try {
@@ -40,7 +42,7 @@ async function initPyodide() {
     worker = new Worker('pyodide-worker.js');
     
     worker.onmessage = function(e) {
-      const { type, state, message, text, success, error } = e.data;
+      const { type, state, message, text, success, error, prompt } = e.data;
       
       if (type === 'status') {
         updateStatus(state, message);
@@ -55,11 +57,14 @@ async function initPyodide() {
         appendOutput('');
       } else if (type === 'output') {
         appendOutput(text);
+      } else if (type === 'stdin_request') {
+        handleStdinRequest(prompt);
       } else if (type === 'error') {
         appendOutput('Error: ' + (error || message), 'error');
       } else if (type === 'complete') {
         const input = document.getElementById('commandInput');
         input.disabled = false;
+        input.placeholder = 'Enter command...';
         if (success) {
           updateStatus('ready', 'Command completed successfully');
         } else {
@@ -101,6 +106,16 @@ function appendOutput(text, type = '') {
   line.textContent = text;
   output.appendChild(line);
   output.scrollTop = output.scrollHeight;
+}
+
+function handleStdinRequest(prompt) {
+  const input = document.getElementById('commandInput');
+  if (prompt) {
+    appendOutput(prompt, 'info');
+  }
+  input.placeholder = 'Enter your response...';
+  input.focus();
+  waitingForStdin = true;
 }
 
 function clearTerminal() {
@@ -209,9 +224,21 @@ document.getElementById('commandInput').addEventListener('keydown', async functi
   if (e.key === 'Enter') {
     e.preventDefault();
     const cmd = this.value.trim();
-    if (cmd) {
+    
+    if (waitingForStdin) {
+      appendOutput(cmd);
+      
+      worker.postMessage({ 
+        type: 'stdin_response', 
+        response: cmd 
+      });
+      
+      this.value = '';
+      this.placeholder = 'Enter command...';
+      waitingForStdin = false;
+    } else if (cmd) {
       if (runningCommand) {
-        appendOutput('A command is already running. Please wait...', 'error');
+        appendOutput(cmd);
       } else {
         await runTerminalCommand(cmd);
       }
