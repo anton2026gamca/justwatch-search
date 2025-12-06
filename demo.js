@@ -17,6 +17,9 @@ let worker = null;
 let pythonCode = '';
 let workerReady = false;
 
+let commandHistory = [];
+let historyIndex = -1;
+
 async function loadPythonScript() {
   try {
     const response = await fetch('just_watch_search.py');
@@ -198,6 +201,38 @@ document.getElementById('commandInput').addEventListener('keydown', async functi
     if (cmd) {
       await runTerminalCommand(cmd);
       this.value = '';
+    }
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (commandHistory.length === 0) return;
+    if (historyIndex < 0 || historyIndex > commandHistory.length) {
+      historyIndex = commandHistory.length;
+    }
+    if (e.key === 'ArrowUp') {
+      if (historyIndex > 0) {
+        historyIndex--;
+      }
+    } else if (e.key === 'ArrowDown') {
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+      } else {
+        historyIndex = commandHistory.length;
+        this.value = '';
+        return;
+      }
+    }
+    this.value = commandHistory[historyIndex] || '';
+    this.setSelectionRange(this.value.length, this.value.length);
+  } else if (e.key === 'Tab') {
+    e.preventDefault();
+    const currentInput = this.value.trim();
+    const matchingCommands = Object.keys(TERMINAL_COMMANDS).filter(cmd => cmd.startsWith(currentInput));
+    if (matchingCommands.length === 1) {
+      this.value = matchingCommands[0];
+      this.setSelectionRange(this.value.length, this.value.length);
+    } else if (matchingCommands.length > 1) {
+      appendOutput('Possible completions:');
+      matchingCommands.forEach(cmd => appendOutput(`- ${cmd}`));
     }
   }
 });
