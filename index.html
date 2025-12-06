@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JustWatch Search - Browser Demo</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <div class="container">
+    <header class="card">
+      <h1>JustWatch Search</h1>
+      <p class="subtitle">Browser-based Command Line Demo</p>
+    </header>
+
+    <div class="card status">
+      <div class="status-indicator" id="statusIndicator"></div>
+      <span id="statusText">Initializing Python environment...</span>
+    </div>
+
+    <div class="terminal-container">
+      <div class="terminal-header">
+        <div class="terminal-title">JustWatch Search Terminal</div>
+      </div>
+      <div class="terminal-output" id="terminalOutput">
+        <div class="output-line output-info">Welcome to JustWatch Search Browser Demo!</div>
+        <div class="output-line">Loading Python environment and dependencies...</div>
+      </div>
+      <div class="input-container">
+        <span class="input-prompt">$</span>
+        <input type="text" id="commandInput" placeholder="Enter command or use controls above..." autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <script src="demo.js"></script>
+</body>
+</html>
