@@ -150,7 +150,9 @@ class JustWatchAPI:
     BASE_URL = "https://apis.justwatch.com"
     GRAPHQL_URL = f"{BASE_URL}/graphql"
     
-    def __init__(self):
+    def __init__(self, proxy_url: str | None = None):
+        self.use_proxy = True if proxy_url != None else False
+        self.proxy_url = (proxy_url if proxy_url.endswith("/") else proxy_url + "/") if proxy_url else ""
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
@@ -158,6 +160,8 @@ class JustWatchAPI:
         })
     
     def _get_url(self, endpoint: str) -> str:
+        if self.use_proxy and self.proxy_url:
+            return f"{self.proxy_url}{self.BASE_URL}{endpoint}"
         return f"{self.BASE_URL}{endpoint}"
     
     def _graphql_request(self, query: str, variables: Dict[str, Any], operation_name: Optional[str] = None) -> Dict[str, Any]:
@@ -425,9 +429,9 @@ fragment TitleOffer on Offer {{
 
 class JustWatchSearch:
     """Main class for JustWatch search functionality with filtering"""
-    
-    def __init__(self):
-        self.api = JustWatchAPI()
+
+    def __init__(self, proxy_url: str | None = None):
+        self.api = JustWatchAPI(proxy_url=proxy_url)
 
     def search(self, query: str, country: str = "US", max_results: int = 10, filter: Optional[JustWatchFilter] = None) -> List[Title]:
         """
@@ -538,6 +542,9 @@ Filter patterns (regex):
     filter_group.add_argument('-fp', '--filter-presentation', type=str, metavar='PATTERN',
         help='Filter offers by quality/presentation (regex). Values: SD, HD, 4K, etc.'
     )
+    filter_group.add_argument('--proxy-url', type=str, metavar='URL',
+        help='Proxy URL to route requests through (e.g., "https://cors-everywhere-wc8b4.ondigitalocean.app/")'
+    )
 
     args = parser.parse_args()
     
@@ -550,7 +557,7 @@ Filter patterns (regex):
         print("Run with -h for help")
         return
     
-    jw = JustWatchSearch()
+    jw = JustWatchSearch(args.proxy_url)
     jw_filter = JustWatchFilter(
         country_pattern=args.filter_country,
         service_pattern=args.filter_service,
