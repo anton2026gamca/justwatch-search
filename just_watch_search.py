@@ -522,6 +522,9 @@ Filter patterns (regex):
     parser.add_argument('--show-offers', action='store_true',
         help='Show streaming offers for search results (interactive)'
     )
+    parser.add_argument('--proxy-url', type=str, metavar='URL',
+        help='Proxy URL to route requests through'
+    )
     
     filter_group = parser.add_argument_group('filter options', 'Filter using regex patterns')
     filter_group.add_argument('-fc', '--filter-country', type=str, metavar='PATTERN',
@@ -541,9 +544,6 @@ Filter patterns (regex):
     )
     filter_group.add_argument('-fp', '--filter-presentation', type=str, metavar='PATTERN',
         help='Filter offers by quality/presentation (regex). Values: SD, HD, 4K, etc.'
-    )
-    filter_group.add_argument('--proxy-url', type=str, metavar='URL',
-        help='Proxy URL to route requests through (e.g., "https://cors-everywhere-wc8b4.ondigitalocean.app/")'
     )
 
     args = parser.parse_args()
