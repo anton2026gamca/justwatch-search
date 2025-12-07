@@ -129,6 +129,10 @@ function runHelp() {
     appendOutput(`- ${cmd}: ${TERMINAL_COMMANDS[cmd].description}`);
   }
   appendOutput('');
+  appendOutput('Examples:');
+  appendOutput('- python just_watch_search.py -h');
+  appendOutput('- python just_watch_search.py -s "Inception" -fc "US" -n 3');
+  appendOutput('- python just_watch_search.py -s "Star Wars" -fc "US" -fm "rent|buy" --show-offers -n 5');
 }
 
 async function runTerminalCommand(command) {
@@ -207,7 +211,12 @@ async function runJustWatchSearch(args) {
   }
 
   updateStatus('loading', 'Running command...');
-  
+
+  if (!args.includes('--proxy-url')) {
+    args.push('--proxy-url');
+    args.push('https://cors-everywhere-wc8b4.ondigitalocean.app/');
+  }
+
   worker.postMessage({ type: 'run', args: args });
   await new Promise((resolve) => {
     const checkCompletion = (e) => {
