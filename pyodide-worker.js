@@ -64,35 +64,44 @@ sys.modules['just_watch_search'] = module
 
 async function run(args) {
   try {
-    let stdinResolve = null;
-    let stdinValue = null;
+    const runId = Date.now() + Math.random();
+    let currentStdinResolve = null;
+    
+    try {
+      pyodide.unregisterJsModule("output_handler");
+    } catch (e) {
+      // Module might not exist, ignore
+    }
     
     pyodide.registerJsModule("output_handler", {
       send_output: (text) => {
         self.postMessage({ type: 'output', text: text });
       },
       request_input_async: (prompt) => {
-        self.postMessage({ type: 'stdin_request', prompt: prompt });
+        self.postMessage({ type: 'stdin_request', prompt: prompt, runId: runId });
         return new Promise((resolve) => {
-          stdinResolve = resolve;
+          currentStdinResolve = resolve;
         });
       }
     });
 
-    const handleStdinResponse = (e) => {
-      if (e.data.type === 'stdin_response') {
-        if (stdinResolve) {
-          stdinResolve(e.data.response);
-          stdinResolve = null;
-        }
+    const thisRunHandler = (response) => {
+      if (currentStdinResolve) {
+        const resolveFunc = currentStdinResolve;
+        currentStdinResolve = null;
+        resolveFunc(response);
       }
     };
     
-    activeStdinHandler = handleStdinResponse;
+    activeStdinHandler = thisRunHandler;
 
     await pyodide.runPythonAsync(`
 import sys
 import builtins
+
+if 'output_handler' in sys.modules:
+    del sys.modules['output_handler']
+
 import output_handler
 
 _original_print = builtins.print
@@ -119,6 +128,10 @@ def custom_print(*args, sep=' ', end='\\n', file=None, flush=False):
 async def async_input(prompt=''):
   if prompt:
     custom_print(prompt, end='')
+  import sys
+  if 'output_handler' in sys.modules:
+    del sys.modules['output_handler']
+  import output_handler
   response = await output_handler.request_input_async(prompt)
   return response
 
@@ -182,6 +195,26 @@ except NameError:
 }
 
 let activeStdinHandler = null;
+let runningCommand = false;
+let commandQueue = [];
+
+async function processCommandQueue() {
+  if (runningCommand || commandQueue.length === 0) {
+    return;
+  }
+  
+  runningCommand = true;
+  const args = commandQueue.shift();
+  
+  try {
+    await run(args);
+  } finally {
+    runningCommand = false;
+    if (commandQueue.length > 0) {
+      processCommandQueue();
+    }
+  }
+}
 
 self.addEventListener('message', async function(e) {
   const { type, code, args } = e.data;
@@ -191,8 +224,11 @@ self.addEventListener('message', async function(e) {
   } else if (type === 'loadScript') {
     await loadScript(code);
   } else if (type === 'run') {
-    await run(args);
-  } else if (type === 'stdin_response' && activeStdinHandler) {
-    activeStdinHandler(e);
+    commandQueue.push(args);
+    processCommandQueue();
+  } else if (type === 'stdin_response') {
+    if (activeStdinHandler) {
+      activeStdinHandler(e.data.response);
+    }
   }
 });

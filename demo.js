@@ -237,14 +237,14 @@ document.getElementById('commandInput').addEventListener('keydown', async functi
     if (waitingForStdin) {
       appendOutput(cmd);
       
+      waitingForStdin = false;
+      this.value = '';
+      this.placeholder = 'Enter command...';
+      
       worker.postMessage({ 
         type: 'stdin_response', 
         response: cmd 
       });
-      
-      this.value = '';
-      this.placeholder = 'Enter command...';
-      waitingForStdin = false;
     } else if (cmd) {
       if (runningCommand) {
         appendOutput(cmd);
