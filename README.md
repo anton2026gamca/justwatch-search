@@ -25,3 +25,14 @@ The script can be run in a [web browser demo](https://anton2026gamca.github.io/j
   ```bash
   python3 just_watch_search.py -h
   ```
+
+## Web Demo deployment
+
+The web demo is hosted using GitHub Pages. To deploy your own version:
+
+1. Fork the repository
+2. Open `Settings` -> `Pages` in your forked repository
+3. Select the branch you want to use for GitHub Pages (usually `main`)
+4. Click "Save"
+
+Your web demo should now be live at `https://<your-username>.github.io/justwatch-search/`
